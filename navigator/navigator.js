@@ -2,7 +2,7 @@
 // @name         Navigator
 // @namespace    http://dmi3.net/
 // @version      1.0
-// @description  Press [n] for keyboard navigation. Press [/] to focus on search field.
+// @description  Press [n] for keyboard navigation. Press [/] to focus on search field. See: https://developer.run/47
 // @author       dmi3
 // @match        http*://*/*
 // @grant        none
