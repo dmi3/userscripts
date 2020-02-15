@@ -1,0 +1,16 @@
+{
+
+  "manifest_version": 2,
+  "name": "DuckGoGo",
+  "version": "1.0",
+
+  "description": "Additional hotkeys for DuckDuckGo. s - search start page. e - search ecosia. g - search google.",
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.duckduckgo.com/*"],
+      "js": ["duckgogo.js"]
+    }
+  ]
+
+}
