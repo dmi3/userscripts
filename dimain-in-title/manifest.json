@@ -1,0 +1,12 @@
+{
+  "name": "Dimaintitle",
+  "version": "1.0.0",
+  "manifest_version": 2,
+  "description": "Adds the domain to the title bar.",
+  "content_scripts": [
+  	{
+		"matches": ["http://*/*", "https://*/*"],
+		"js": ["dimaintitle.js"]
+	}
+  ]
+}
