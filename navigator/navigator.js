@@ -29,7 +29,7 @@
         const key = event.key.toLowerCase();
         if (key=='/') {
             event.preventDefault();
-            const el = document.querySelector("input[type='search'], input[type='text']")
+            const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text']"].map(s => document.querySelector(s)).find(s => s)
             if (el) el.focus();
         } else if (key==='n' || key==='m') {
             mode = key;
