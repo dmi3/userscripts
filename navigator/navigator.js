@@ -22,9 +22,9 @@
         if (event.target.type) return;
         if (document.head.contains(style)) document.head.removeChild(style);
 
-        var e = document.createEvent("MouseEvents");
-        //the tenth parameter of initMouseEvent sets ctrl key to open in background tab
-        e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, mode === "m", false, false, false, 0, null);
+        const e = document.createEvent("MouseEvents");
+        const ctrlClick = mode === "m"
+        e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, ctrlClick, false, false, false, 0, null);
 
         const key = event.key.toLowerCase();
         if (key=='/') {
@@ -52,7 +52,7 @@
 
         if (goto) {
             const number = buffer.join("");
-            const selector = number==="" ? "" : '[dim-index^="'+number+'"]';
+            const selector = number === "" ? "[dim-index]" : `[dim-index^="${number}"]`;
             style = document.head.appendChild(document.createElement("style"));
             style.sheet.insertRule(selector+'::after { content: attr(dim-index); position: absolute; background: yellow; color: black; vertical-align: super; font-size: smaller;}');
         }
