@@ -54,7 +54,7 @@
             const number = buffer.join("");
             const selector = number === "" ? "[dim-index]" : `[dim-index^="${number}"]`;
             style = document.head.appendChild(document.createElement("style"));
-            style.sheet.insertRule(selector+'::after { content: attr(dim-index); position: absolute; background: yellow; color: black; vertical-align: super; font-size: smaller;}');
+            style.sheet.insertRule(selector+'::after { content: attr(dim-index) !important; position: absolute !important; background: yellow !important; color: black !important; vertical-align: super !important; font-size: smaller !important; z-index: 1000 !important;}');
         }
     });
 })();
