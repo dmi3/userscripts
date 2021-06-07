@@ -18,6 +18,18 @@
     let style = null;
     let mode = '';
 
+    function isInViewport(element) {
+        const rect = element.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth) &&
+            rect.width > 0 &&
+            rect.height > 0
+        );
+    }    
+
     document.addEventListener('keydown', event => {
         if (event.target.type) return;
         if (document.head.contains(style)) document.head.removeChild(style);
@@ -29,13 +41,32 @@
         const key = event.key.toLowerCase();
         if (key=='/') {
             event.preventDefault();
-            const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text']"].map(s => document.querySelector(s)).find(s => s)
-            if (el) el.focus();
+            const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text']"]
+              .flatMap(s => Array.from(document.querySelectorAll(s)))
+              .filter(isInViewport)
+              .find(s => s)
+
+            if (el) {
+                el.scrollIntoView(true);
+                el.focus();
+            }    
+        } else if (key=='\\') {
+            event.preventDefault();
+            const el = Array.from(document.querySelectorAll("input[type='email']"))
+              .filter(isInViewport)
+              .find(s => s)
+
+            if (el) {
+                el.scrollIntoView(true);
+                el.focus();
+            }
         } else if (key==='n' || key==='m') {
             mode = key;
             if (!goto) {
                 buffer.length=0;
-                document.querySelectorAll('a, button').forEach((a, i) => a.setAttribute('dim-index', i))
+                Array.from(document.querySelectorAll('a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]'))
+                    .filter(isInViewport)
+                    .forEach((a, i) => a.setAttribute('dim-index', i))
             }
             goto=!goto;
         } else if (key=='enter') {
@@ -54,7 +85,7 @@
             const number = buffer.join("");
             const selector = number === "" ? "[dim-index]" : `[dim-index^="${number}"]`;
             style = document.head.appendChild(document.createElement("style"));
-            style.sheet.insertRule(selector+'::after { content: attr(dim-index) !important; position: absolute !important; background: yellow !important; color: black !important; vertical-align: super !important; font-size: smaller !important; z-index: 1000 !important;}');
+            style.sheet.insertRule(selector+'::after { content: attr(dim-index) !important; position: absolute !important; background: yellow !important; color: black !important; vertical-align: super !important; font-size: smaller !important; z-index: 1000 !important; line-height: 1em !important; padding: 0 !important; margin: 0 !important;}');
         }
     });
 })();
