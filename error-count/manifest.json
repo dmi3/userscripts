@@ -1,0 +1,25 @@
+{
+  "name": "Error Notifier",
+  "description": "Show if JavaScript error happens on localhost",
+  "manifest_version": 2,
+  "version": "2.0.0",
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": [ "webNavigation", "*://*/*" ],
+  "browser_action": {
+    "default_title": "0"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.localhost/*"],
+      "run_at": "document_start",
+      "js": ["page.js"]
+    }
+  ],  
+  "icons": {
+    "128": "logo.png",
+    "32": "logo.png",
+    "16": "logo.png"
+  }
+}
