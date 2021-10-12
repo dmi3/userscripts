@@ -6,7 +6,7 @@
   "background": {
     "scripts": ["background.js"]
   },
-  "permissions": [ "webNavigation", "*://*/*" ],
+  "permissions": [ "notifications", "webNavigation", "*://*/*" ],
   "browser_action": {
     "default_title": "0"
   },
