@@ -2,14 +2,12 @@
   "name": "Error Notifier",
   "description": "Show if JavaScript error happens on localhost",
   "manifest_version": 2,
-  "version": "2.0.0",
+  "version": "1.0.0",
   "background": {
     "scripts": ["background.js"]
   },
-  "permissions": [ "notifications", "webNavigation", "*://*/*" ],
-  "browser_action": {
-    "default_title": "0"
-  },
+  "permissions": [ "notifications", "webNavigation", "*://*.localhost/*" ],
+  "browser_action": {},
   "content_scripts": [
     {
       "matches": ["*://*.localhost/*"],
