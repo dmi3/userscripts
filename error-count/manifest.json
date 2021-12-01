@@ -6,11 +6,11 @@
   "background": {
     "scripts": ["background.js"]
   },
-  "permissions": [ "notifications", "webNavigation", "*://*.localhost/*" ],
+  "permissions": [ "notifications", "webNavigation" ],
   "browser_action": {},
   "content_scripts": [
     {
-      "matches": ["*://*.localhost/*"],
+      "matches": ["*://*.localhost/*", "*://*.127.0.0.1/*"],
       "run_at": "document_start",
       "js": ["page.js"]
     }
