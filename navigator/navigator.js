@@ -28,7 +28,13 @@
             rect.width > 0 &&
             rect.height > 0
         );
-    }    
+    }
+
+    const selectors = {
+        'www.google.com': 'a h3',
+        'default': 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]',
+    }
+    const selector = selectors[window.location.hostname] ?? selectors["default"];
 
     document.addEventListener('keydown', event => {
         if (event.target.type) return;
@@ -64,11 +70,19 @@
             mode = key;
             if (!goto) {
                 buffer.length=0;
-                Array.from(document.querySelectorAll('a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]'))
+                Array.from(document.querySelectorAll(selector))
                     .filter(isInViewport)
                     .forEach((a, i) => a.setAttribute('dim-index', i))
             }
             goto=!goto;
+        } else if (goto==true && (key=='arrowdown' || key=='arrowup')) {
+            const all = [...document.querySelectorAll('[dim-index]')];
+            const current = document.querySelector('[dim-index="'+buffer.join("")+'"]');
+            const position = all.indexOf(current)
+            const shift = key=='arrowdown' ? 1 : -1;
+
+            buffer = (position+shift).toString().split('')
+            event.preventDefault()
         } else if (key=='enter') {
             goto = false;
             document.querySelector('[dim-index="'+buffer.join("")+'"]').dispatchEvent(e);
