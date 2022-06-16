@@ -1,0 +1,12 @@
+{
+  "name": "Good Old Reddit",
+  "version": "1.0.0",
+  "manifest_version": 2,
+  "description": "Reddirects bad new reddit to good old Reddit",
+  "content_scripts": [
+  	{
+		"matches": ["*://www.reddit.com/*"],
+		"js": ["goodoldreddit.js"]
+	}
+  ]
+}
