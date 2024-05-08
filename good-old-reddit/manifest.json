@@ -5,7 +5,7 @@
   "description": "Reddirects bad new reddit to good old Reddit",
   "content_scripts": [
   	{
-		"matches": ["*://www.reddit.com/*"],
+		"matches": ["*://www.reddit.com/r/*"],
 		"js": ["goodoldreddit.js"]
 	}
   ]
