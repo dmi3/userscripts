@@ -30,11 +30,11 @@
         );
     }
 
-    const selectors = {
-        'www.google.com': 'a h3',
-        'default': 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]',
+    const configs = {
+        'www.google.com': {selector: 'a h3', selectAll: true},
+        'default': {selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]'},
     }
-    const selector = selectors[window.location.hostname] ?? selectors["default"];
+    const config = configs[window.location.hostname] ?? configs["default"];
 
     document.addEventListener('keydown', event => {
         if (event.target.type) return;
@@ -47,7 +47,7 @@
         const key = event.key.toLowerCase();
         if (key=='/') {
             event.preventDefault();
-            const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text']"]
+            const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text'], textarea[name='q']"]
               .flatMap(s => Array.from(document.querySelectorAll(s)))
               .filter(isInViewport)
               .find(s => s)
@@ -70,8 +70,9 @@
             mode = key;
             if (!goto) {
                 buffer.length=0;
-                Array.from(document.querySelectorAll(selector))
-                    .filter(isInViewport)
+                Array.from(document.querySelectorAll(config.selector))
+                    .filter(el => el.offsetParent != null)
+                    .filter((it) => config.selectAll || isInViewport(it))
                     .forEach((a, i) => a.setAttribute('dim-index', i))
             }
             goto=!goto;
@@ -80,12 +81,22 @@
             const current = document.querySelector('[dim-index="'+buffer.join("")+'"]');
             const position = all.indexOf(current)
             const shift = key=='arrowdown' ? 1 : -1;
+            const next = position+shift;
 
-            buffer = (position+shift).toString().split('')
+            buffer = next.toString().split('')
             event.preventDefault()
+
+            const el = all[next];
+            if (el && !isInViewport(el)) {
+                el.scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"});
+            }
         } else if (key=='enter') {
             goto = false;
-            document.querySelector('[dim-index="'+buffer.join("")+'"]').dispatchEvent(e);
+            const index = buffer.length > 0 ? buffer.join("") : "0";
+            document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
+        } else if (key=='escape') {
+            goto = false;
+            [...document.querySelectorAll('[dim-index]')].forEach(el => el.setAttribute('dim-index', undefined))
         } else if (goto) {
             buffer.push(key);
             const els = document.querySelectorAll('[dim-index^="'+buffer.join("")+'"]');
