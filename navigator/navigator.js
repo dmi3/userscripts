@@ -8,12 +8,12 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
     console.log('Navigator initialized');
 
-    let buffer = [];
+    const buffer = [];
     let goto = false;
     let style = null;
     let mode = '';
@@ -30,87 +30,106 @@
         );
     }
 
-    const configs = {
-        'www.google.com': {selector: 'a h3', selectAll: true},
-        'default': {selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]'},
+    function isNumeric(value) {
+        return /^-?\d+$/.test(value);
     }
-    const config = configs[window.location.hostname] ?? configs["default"];
 
-    document.addEventListener('keydown', event => {
+    function nextChar(str) {
+        if (str.length == 0) {
+            return 'a';
+        }
+        const charA = str.split('');
+        if (charA[charA.length - 1] === 'z') {
+            return nextChar(str.substring(0, charA.length - 1)) + 'a';
+        } else {
+            return str.substring(0, charA.length - 1) +
+                String.fromCharCode(charA[charA.length - 1].charCodeAt(0) + 1);
+        }
+    }
+
+    const configs = {
+        'www.google.com': { selector: 'a h3, td a, [role="listitem"] a', nosearch: true },
+        'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]' },
+    };
+    const config = configs[window.location.hostname] ?? configs['default'];
+
+    document.addEventListener('keydown', (event) => {
         if (event.target.type) return;
         if (document.head.contains(style)) document.head.removeChild(style);
 
-        const e = document.createEvent("MouseEvents");
-        const ctrlClick = mode === "m"
-        e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, ctrlClick, false, false, false, 0, null);
+        const e = document.createEvent('MouseEvents');
+        const ctrlClick = mode === 'm';
+        e.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, ctrlClick, false, false, false, 0, null);
 
         const key = event.key.toLowerCase();
-        if (key=='/') {
+        if (key == '/' && !config.nosearch) {
             event.preventDefault();
             const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text'], textarea[name='q']"]
-              .flatMap(s => Array.from(document.querySelectorAll(s)))
-              .filter(isInViewport)
-              .find(s => s)
+                .flatMap((s) => Array.from(document.querySelectorAll(s)))
+                .filter(isInViewport)
+                .find((s) => s);
 
             if (el) {
-                el.scrollIntoView(true);
-                el.focus();
-            }    
-        } else if (key=='\\') {
-            event.preventDefault();
-            const el = Array.from(document.querySelectorAll("input[type='email']"))
-              .filter(isInViewport)
-              .find(s => s)
-
-            if (el) {
-                el.scrollIntoView(true);
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 el.focus();
             }
-        } else if (key==='n' || key==='m') {
+        } else if ((key === 'n' || key === 'm') && !goto) {
             mode = key;
-            if (!goto) {
-                buffer.length=0;
-                Array.from(document.querySelectorAll(config.selector))
-                    .filter(el => el.offsetParent != null)
-                    .filter((it) => config.selectAll || isInViewport(it))
-                    .forEach((a, i) => a.setAttribute('dim-index', i))
-            }
-            goto=!goto;
-        } else if (goto==true && (key=='arrowdown' || key=='arrowup')) {
-            const all = [...document.querySelectorAll('[dim-index]')];
-            const current = document.querySelector('[dim-index="'+buffer.join("")+'"]');
-            const position = all.indexOf(current)
-            const shift = key=='arrowdown' ? 1 : -1;
-            const next = position+shift;
 
-            buffer = next.toString().split('')
-            event.preventDefault()
-
-            const el = all[next];
-            if (el && !isInViewport(el)) {
-                el.scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"});
-            }
-        } else if (key=='enter') {
+            buffer.length = 0;
+            const used = [];
+            let i = 'aa';
+            Array.from(document.querySelectorAll(config.selector))
+                .filter((el) => el.offsetParent != null)
+                .filter(isInViewport)
+                .filter((a) => {
+                    const i = a.innerText?.substr(0, 2)?.toLowerCase();
+                    if ((isNumeric(i) || i?.trim()?.length === 2) && !used.includes(i)) {
+                        a.setAttribute('dim-index', i);
+                        used.push(i);
+                        return false;
+                    } else {
+                        // continue in the next pass
+                        return true;
+                    }
+                })
+                .forEach((a) => {
+                    while (used.includes(i) && i.length === 2) {
+                        i = nextChar(i);
+                    }
+                    a.setAttribute('dim-index', i);
+                    used.push(i);
+                });
+            goto = true;
+        } else if (key == 'enter') {
             goto = false;
-            const index = buffer.length > 0 ? buffer.join("") : "0";
+            const index = buffer.length > 0 ? buffer.join('') : '0';
             document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
-        } else if (key=='escape') {
+        } else if (key == 'escape') {
             goto = false;
-            [...document.querySelectorAll('[dim-index]')].forEach(el => el.setAttribute('dim-index', undefined))
+            [...document.querySelectorAll('[dim-index]')].forEach((el) => el.setAttribute('dim-index', undefined));
         } else if (goto) {
+            event.stopImmediatePropagation();
             buffer.push(key);
-            const els = document.querySelectorAll('[dim-index^="'+buffer.join("")+'"]');
-            if (els.length==1) {
+            const els = document.querySelectorAll(
+                '[dim-index^="' + buffer.join('') + '"]',
+            );
+            if (els.length == 1) {
                 goto = false;
                 els[0].dispatchEvent(e);
             }
         }
 
         if (goto) {
-            const number = buffer.join("");
-            const selector = number === "" ? "[dim-index]" : `[dim-index^="${number}"]`;
-            style = document.head.appendChild(document.createElement("style"));
-            style.sheet.insertRule(selector+'::after { content: attr(dim-index) !important; position: absolute !important; background: yellow !important; color: black !important; vertical-align: super !important; font-size: smaller !important; z-index: 1000 !important; line-height: 1em !important; padding: 0 !important; margin: 0 !important;}');
+            const number = buffer.join('');
+            const selector = number === '' ? '[dim-index]' : `[dim-index^="${number}"]`;
+            style = document.head.appendChild(document.createElement('style'));
+            style.sheet.insertRule(
+                selector +
+                    '::before { content: attr(dim-index) !important; all: initial; position: absolute; background: yellow; color: black; vertical-align: super; font-size: small; z-index: 1000;}',
+            );
+            event.stopImmediatePropagation();
+            event.preventDefault();
         }
-    });
+    }, true); // true → Use capture phase, prevent others
 })();
