@@ -2,7 +2,7 @@
 // @name         Navigator
 // @namespace    http://dmi3.net/
 // @version      1.0
-// @description  Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. See: https://developer.run/47
+// @description  Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. [esc] to cancel. See: https://developer.run/47
 // @author       dmi3
 // @match        http*://*/*
 // @grant        none
@@ -35,7 +35,7 @@
     }
 
     function* sequenceGenerator() {
-        const letters = 'abcdefghijklmnopqrstuvwxyz';
+        const letters = 'abcdefghijklopqrstuvwxyz';
         const length = letters.length;
 
         // Generate pairs of the same letter (aa, bb, cc, dd, ...)
@@ -55,7 +55,7 @@
 
     const configs = {
         'www.google.com': { selector: 'a h3, td a, [role="listitem"] a', nosearch: true },
-        'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"]' },
+        'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"], [class*="more"], [class*="menu"]' },
     };
     const config = configs[window.location.hostname] ?? configs['default'];
 
@@ -79,7 +79,7 @@
                 el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 el.focus();
             }
-        } else if ((key === 'n' || key === 'm') && !goto) {
+        } else if (key === 'n' || key === 'm') {
             mode = key;
 
             buffer.length = 0;
@@ -89,7 +89,7 @@
                 .filter((el) => el.offsetParent != null)
                 .filter(isInViewport)
                 .filter((a) => {
-                    const i = a.innerText?.replace(/[^a-zA-Z0-9]/g, '')?.substr(0, 2)?.toLowerCase();
+                    const i = a.innerText?.replace(/[nmNM]|[^a-zA-Z0-9]/g, '')?.substr(0, 2)?.toLowerCase();
                     if ((isNumeric(i) || i?.length === 2) && !used.includes(i)) {
                         a.setAttribute('dim-index', i);
                         used.push(i);
@@ -114,7 +114,7 @@
             goto = false;
             const index = buffer.length > 0 ? buffer.join('') : '0';
             document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
-        } else if ((key == 'escape' || key == 'backspace') && goto) {
+        } else if ((key == 'escape' || key == 'backspace' || key == 'n' || key == 'm') && goto) {
             goto = false;
             [...document.querySelectorAll('[dim-index]')].forEach((el) => el.setAttribute('dim-index', undefined));
             event.stopImmediatePropagation();
@@ -134,10 +134,11 @@
         if (goto) {
             const number = buffer.join('');
             const selector = number === '' ? '[dim-index]' : `[dim-index^="${number}"]`;
+            const color = mode === 'm' ? '#DEFF00' : ' #FFEA00';
             style = document.head.appendChild(document.createElement('style'));
             style.sheet.insertRule(
                 selector +
-                    '::before { content: attr(dim-index) !important; all: initial; position: absolute; background: yellow; color: black; vertical-align: super; font-size: small; z-index: 1000;}',
+                    '::before { content: attr(dim-index) !important; all: initial; position: absolute; background: '+color+'; color: black; border-radius: 3px; vertical-align: super; font-size: small; z-index: 1000;}',
             );
             event.stopImmediatePropagation();
             event.preventDefault();
