@@ -34,16 +34,22 @@
         return /^-?\d+$/.test(value);
     }
 
-    function nextChar(str) {
-        if (str.length == 0) {
-            return 'a';
+    function* sequenceGenerator() {
+        const letters = 'abcdefghijklmnopqrstuvwxyz';
+        const length = letters.length;
+
+        // Generate pairs of the same letter (aa, bb, cc, dd, ...)
+        for (let i = 0; i < length; i++) {
+            yield letters[i] + letters[i];
         }
-        const charA = str.split('');
-        if (charA[charA.length - 1] === 'z') {
-            return nextChar(str.substring(0, charA.length - 1)) + 'a';
-        } else {
-            return str.substring(0, charA.length - 1) +
-                String.fromCharCode(charA[charA.length - 1].charCodeAt(0) + 1);
+
+        // Generate pairs of different letters (ab, ba)
+        for (let i = 0; i < length; i++) {
+            for (let j = 0; j < length; j++) {
+                if (i !== j) {
+                    yield letters[j] + letters[i];
+                }
+            }
         }
     }
 
@@ -78,13 +84,13 @@
 
             buffer.length = 0;
             const used = [];
-            let i = 'aa';
+            const iterator = sequenceGenerator();
             Array.from(document.querySelectorAll(config.selector))
                 .filter((el) => el.offsetParent != null)
                 .filter(isInViewport)
                 .filter((a) => {
-                    const i = a.innerText?.substr(0, 2)?.toLowerCase();
-                    if ((isNumeric(i) || i?.trim()?.length === 2) && !used.includes(i)) {
+                    const i = a.innerText?.replace(/[^a-zA-Z0-9]/g, '')?.substr(0, 2)?.toLowerCase();
+                    if ((isNumeric(i) || i?.length === 2) && !used.includes(i)) {
                         a.setAttribute('dim-index', i);
                         used.push(i);
                         return false;
@@ -94,20 +100,25 @@
                     }
                 })
                 .forEach((a) => {
-                    while (used.includes(i) && i.length === 2) {
-                        i = nextChar(i);
+                    let i = iterator.next();
+                    while (used.includes(i.value) && !i.done) {
+                        i = iterator.next();
                     }
-                    a.setAttribute('dim-index', i);
-                    used.push(i);
+                    if (i.value) {
+                        a.setAttribute('dim-index', i.value);
+                        used.push(i);
+                    }
                 });
             goto = true;
         } else if (key == 'enter') {
             goto = false;
             const index = buffer.length > 0 ? buffer.join('') : '0';
             document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
-        } else if (key == 'escape') {
+        } else if ((key == 'escape' || key == 'backspace') && goto) {
             goto = false;
             [...document.querySelectorAll('[dim-index]')].forEach((el) => el.setAttribute('dim-index', undefined));
+            event.stopImmediatePropagation();
+            event.preventDefault();
         } else if (goto) {
             event.stopImmediatePropagation();
             buffer.push(key);
@@ -131,5 +142,12 @@
             event.stopImmediatePropagation();
             event.preventDefault();
         }
-    }, true); // true → Use capture phase, prevent others
+    }, true); // true → Use capture phase, prevent other event listeners
+
+    document.addEventListener('keyup', (event) => {
+        if (goto) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+        }
+    }, true);
 })();
