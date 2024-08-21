@@ -30,10 +30,6 @@
         );
     }
 
-    function isNumeric(value) {
-        return /^-?\d+$/.test(value);
-    }
-
     function* sequenceGenerator() {
         const letters = 'abcdefghijklopqrstuvwxyz';
         const length = letters.length;
@@ -79,7 +75,7 @@
                 el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 el.focus();
             }
-        } else if (key === 'n' || key === 'm') {
+        } else if ((key === 'n' || key === 'm') && mode !== key) {
             mode = key;
 
             buffer.length = 0;
@@ -88,9 +84,15 @@
             Array.from(document.querySelectorAll(config.selector))
                 .filter((el) => el.offsetParent != null)
                 .filter(isInViewport)
+                // first pass: assign tags based on first characters, if not taken
                 .filter((a) => {
-                    const i = a.innerText?.replace(/[nmNM]|[^a-zA-Z0-9]/g, '')?.substr(0, 2)?.toLowerCase();
-                    if ((isNumeric(i) || i?.length === 2) && !used.includes(i)) {
+                    const n = a.innerText?.match(/\d/)?.[0];
+                    const i = a.innerText?.replace(/[nmNM]|[^a-zA-Z]/g, '')?.substr(0, 2)?.toLowerCase();
+                    if (n && !used.includes(n)) {
+                        a.setAttribute('dim-index', n);
+                        used.push(n);
+                        return false;
+                    } else if (i?.length === 2 && !used.includes(i)) {
                         a.setAttribute('dim-index', i);
                         used.push(i);
                         return false;
@@ -99,6 +101,7 @@
                         return true;
                     }
                 })
+                // first pass: assign sequential tags aa, bb, cc...
                 .forEach((a) => {
                     let i = iterator.next();
                     while (used.includes(i.value) && !i.done) {
