@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Navigator
 // @namespace    http://dmi3.net/
-// @version      1.0
+// @version      2.0
 // @description  Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. [esc] to cancel. See: https://developer.run/47
 // @author       dmi3
 // @match        http*://*/*
@@ -14,9 +14,8 @@
     console.log('Navigator initialized');
 
     const buffer = [];
-    let goto = false;
-    let style = null;
     let mode = '';
+    let style = null;
 
     function isInViewport(element) {
         const rect = element.getBoundingClientRect();
@@ -31,6 +30,7 @@
     }
 
     function* sequenceGenerator() {
+        // Skip n and m as these are control keys
         const letters = 'abcdefghijklopqrstuvwxyz';
         const length = letters.length;
 
@@ -53,7 +53,7 @@
         'www.google.com': { selector: 'a h3, td a, [role="listitem"] a', nosearch: true },
         'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"], [class*="more"], [class*="menu"]' },
     };
-    const config = configs[window.location.hostname] ?? configs['default'];
+    const config = { ...configs['default'], ...configs[window.location.hostname] };
 
     document.addEventListener('keydown', (event) => {
         if (event.target.type) return;
@@ -64,12 +64,11 @@
         e.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, ctrlClick, false, false, false, 0, null);
 
         const key = event.key.toLowerCase();
-        if (key == '/' && !config.nosearch) {
+        if (key === '/' && !config.nosearch) {
             event.preventDefault();
             const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text'], textarea[name='q']"]
                 .flatMap((s) => Array.from(document.querySelectorAll(s)))
-                .filter(isInViewport)
-                .find((s) => s);
+                .find(isInViewport);
 
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
@@ -86,22 +85,21 @@
                 .filter(isInViewport)
                 // first pass: assign tags based on first characters, if not taken
                 .filter((a) => {
-                    const n = a.innerText?.match(/\d/)?.[0];
+                    const n = a.innerText?.trim()?.[0]?.match(/\d/)?.[0];
                     const i = a.innerText?.replace(/[nmNM]|[^a-zA-Z]/g, '')?.substr(0, 2)?.toLowerCase();
-                    if (n && !used.includes(n)) {
+                    if (n && !used.includes(n)) { // single digit
                         a.setAttribute('dim-index', n);
                         used.push(n);
                         return false;
-                    } else if (i?.length === 2 && !used.includes(i)) {
+                    } else if (i?.length === 2 && !used.includes(i)) { // two letter tag
                         a.setAttribute('dim-index', i);
                         used.push(i);
                         return false;
                     } else {
-                        // continue in the next pass
-                        return true;
+                        return true; // continue in the next pass
                     }
                 })
-                // first pass: assign sequential tags aa, bb, cc...
+                // second pass: assign sequential tags aa, bb, cc...
                 .forEach((a) => {
                     let i = iterator.next();
                     while (used.includes(i.value) && !i.done) {
@@ -112,36 +110,36 @@
                         used.push(i);
                     }
                 });
-            goto = true;
-        } else if (key == 'enter') {
-            goto = false;
+        } else if (key === 'enter') {
+            mode = '';
             const index = buffer.length > 0 ? buffer.join('') : '0';
             document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
-        } else if ((key == 'escape' || key == 'backspace' || key == 'n' || key == 'm') && goto) {
-            goto = false;
+        } else if ((key === 'escape' || key === 'backspace' || key === 'n' || key === 'm') && mode) {
+            mode = '';
             [...document.querySelectorAll('[dim-index]')].forEach((el) => el.setAttribute('dim-index', undefined));
             event.stopImmediatePropagation();
             event.preventDefault();
-        } else if (goto) {
+        } else if (mode) {
             event.stopImmediatePropagation();
             buffer.push(key);
             const els = document.querySelectorAll(
                 '[dim-index^="' + buffer.join('') + '"]',
             );
-            if (els.length == 1) {
-                goto = false;
+            if (els.length === 1) {
+                mode = '';
                 els[0].dispatchEvent(e);
             }
         }
 
-        if (goto) {
+        if (mode) {
             const number = buffer.join('');
             const selector = number === '' ? '[dim-index]' : `[dim-index^="${number}"]`;
-            const color = mode === 'm' ? '#DEFF00' : ' #FFEA00';
+            const color = mode === 'm' ? '#DEFF00' : '#FFEA00';
             style = document.head.appendChild(document.createElement('style'));
             style.sheet.insertRule(
                 selector +
-                    '::before { content: attr(dim-index) !important; all: initial; position: absolute; background: '+color+'; color: black; border-radius: 3px; vertical-align: super; font-size: small; z-index: 1000;}',
+                    '::before { content: attr(dim-index) !important; all: initial; position: absolute; background: ' + color +
+                    '; color: black; border-radius: 3px; vertical-align: super; font-size: small; z-index: 1000;}',
             );
             event.stopImmediatePropagation();
             event.preventDefault();
@@ -149,7 +147,7 @@
     }, true); // true → Use capture phase, prevent other event listeners
 
     document.addEventListener('keyup', (event) => {
-        if (goto) {
+        if (mode) {
             event.stopImmediatePropagation();
             event.preventDefault();
         }

@@ -1,9 +1,9 @@
 {
 
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Navigator",
-  "version": "1.0",
-  "description": "Press [n] for keyboard navigation. Press [/] to focus on search field. See: https://developer.run/47",
+  "version": "2.0",
+  "description": "Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. [esc] to cancel. See: https://developer.run/47",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
