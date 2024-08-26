@@ -13,9 +13,15 @@
 
     console.log('Navigator initialized');
 
+    // Hot keys
+    const navigate = 'n';
+    const navigateNewTab = 'm';
+    const disable = 'd';
+
     const buffer = [];
     let mode = '';
     let style = null;
+    let enabled = true;
 
     function isInViewport(element) {
         const rect = element.getBoundingClientRect();
@@ -50,17 +56,18 @@
     }
 
     const configs = {
+        'news.ycombinator.com': { selector: '.titleline a, .subline a:last-of-type' },
         'www.google.com': { selector: 'a h3, td a, [role="listitem"] a', nosearch: true },
         'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"], [class*="more"], [class*="menu"]' },
     };
     const config = { ...configs['default'], ...configs[window.location.hostname] };
 
     document.addEventListener('keydown', (event) => {
-        if (event.target.type) return;
+        if (event.target.type || !enabled) return;
         if (document.head.contains(style)) document.head.removeChild(style);
 
         const e = document.createEvent('MouseEvents');
-        const ctrlClick = mode === 'm';
+        const ctrlClick = mode === navigateNewTab;
         e.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, ctrlClick, false, false, false, 0, null);
 
         const key = event.key.toLowerCase();
@@ -74,7 +81,7 @@
                 el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 el.focus();
             }
-        } else if ((key === 'n' || key === 'm') && mode !== key) {
+        } else if ((key === navigate || key === navigateNewTab) && mode !== key) {
             mode = key;
 
             buffer.length = 0;
@@ -86,7 +93,7 @@
                 // first pass: assign tags based on first characters, if not taken
                 .filter((a) => {
                     const n = a.innerText?.trim()?.[0]?.match(/\d/)?.[0];
-                    const i = a.innerText?.replace(/[nmNM]|[^a-zA-Z]/g, '')?.substr(0, 2)?.toLowerCase();
+                    const i = a.innerText?.replace(/[nmdNMD]|[^a-zA-Z]/g, '')?.substr(0, 2)?.toLowerCase();
                     if (n && !used.includes(n)) { // single digit
                         a.setAttribute('dim-index', n);
                         used.push(n);
@@ -114,7 +121,11 @@
             mode = '';
             const index = buffer.length > 0 ? buffer.join('') : '0';
             document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
-        } else if ((key === 'escape' || key === 'backspace' || key === 'n' || key === 'm') && mode) {
+        } else if ((key === 'escape' || key === 'backspace' || key === disable) && mode) {
+            if (key === disable) {
+                enabled = false;
+                console.log('Navigator is disabled until page reload');
+            }
             mode = '';
             [...document.querySelectorAll('[dim-index]')].forEach((el) => el.setAttribute('dim-index', undefined));
             event.stopImmediatePropagation();
@@ -134,7 +145,7 @@
         if (mode) {
             const number = buffer.join('');
             const selector = number === '' ? '[dim-index]' : `[dim-index^="${number}"]`;
-            const color = mode === 'm' ? '#DEFF00' : '#FFEA00';
+            const color = mode === navigateNewTab ? '#DEFF00' : '#FFEA00';
             style = document.head.appendChild(document.createElement('style'));
             style.sheet.insertRule(
                 selector +
