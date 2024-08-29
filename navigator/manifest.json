@@ -3,7 +3,7 @@
   "manifest_version": 3,
   "name": "Navigator",
   "version": "2.0",
-  "description": "Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. [esc] to cancel. See: https://developer.run/47",
+  "description": "Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. [esc] to cancel, [h] to disable until next reload. See: https://developer.run/47",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

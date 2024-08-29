@@ -2,7 +2,7 @@
 // @name         Navigator
 // @namespace    http://dmi3.net/
 // @version      2.0
-// @description  Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. [esc] to cancel. See: https://developer.run/47
+// @description  Press [n] for keyboard navigation. Press [m] to open link in background tab. Press [/] to focus on search field. [esc] to cancel, [h] to disable until next reload. See: https://developer.run/47
 // @author       dmi3
 // @match        http*://*/*
 // @grant        none
@@ -11,17 +11,24 @@
 (function () {
     'use strict';
 
-    console.log('Navigator initialized');
+    console.log('Navigator loaded');
 
-    // Hot keys
+    // Settings
     const navigate = 'n';
     const navigateNewTab = 'm';
-    const disable = 'd';
+    const disable = 'h';
+    const configs = {
+        'example.com': { disabled: true },
+        'news.ycombinator.com': { selector: '.titleline a, .subline a:last-of-type' },
+        'www.google.com': { selector: 'a h3, td a, [role="listitem"] a', nosearch: true },
+        'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"], [class*="more"], [class*="menu"]' },
+    };
 
     const buffer = [];
+    const allowedLetters = 'abcdefghijklmnopqrstuvwxyz'.split('').filter((l) => ![navigate, navigateNewTab, disable].includes(l));
     let mode = '';
     let style = null;
-    let enabled = true;
+    let disabled = false;
 
     function isInViewport(element) {
         const rect = element.getBoundingClientRect();
@@ -36,34 +43,35 @@
     }
 
     function* sequenceGenerator() {
-        // Skip n and m as these are control keys
-        const letters = 'abcdefghijklopqrstuvwxyz';
-        const length = letters.length;
+        const length = allowedLetters.length;
 
         // Generate pairs of the same letter (aa, bb, cc, dd, ...)
         for (let i = 0; i < length; i++) {
-            yield letters[i] + letters[i];
+            yield allowedLetters[i] + allowedLetters[i];
         }
 
         // Generate pairs of different letters (ab, ba)
         for (let i = 0; i < length; i++) {
             for (let j = 0; j < length; j++) {
                 if (i !== j) {
-                    yield letters[j] + letters[i];
+                    yield allowedLetters[j] + allowedLetters[i];
                 }
             }
         }
     }
 
-    const configs = {
-        'news.ycombinator.com': { selector: '.titleline a, .subline a:last-of-type' },
-        'www.google.com': { selector: 'a h3, td a, [role="listitem"] a', nosearch: true },
-        'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"], [class*="more"], [class*="menu"]' },
-    };
+    function notify(text) {
+        const alert = document.createElement('p');
+        alert.textContent = text;
+        alert.style.cssText = 'all: initial; position: absolute; left:0; top: 0; background: #FFEA00; color: #000;';
+        document.body.appendChild(alert);
+        setTimeout(() => document.body.removeChild(alert), 4000);
+    }
+
     const config = { ...configs['default'], ...configs[window.location.hostname] };
 
     document.addEventListener('keydown', (event) => {
-        if (event.target.type || !enabled) return;
+        if (event.target.type || disabled || config.disabled) return;
         if (document.head.contains(style)) document.head.removeChild(style);
 
         const e = document.createEvent('MouseEvents');
@@ -93,7 +101,7 @@
                 // first pass: assign tags based on first characters, if not taken
                 .filter((a) => {
                     const n = a.innerText?.trim()?.[0]?.match(/\d/)?.[0];
-                    const i = a.innerText?.replace(/[nmdNMD]|[^a-zA-Z]/g, '')?.substr(0, 2)?.toLowerCase();
+                    const i = a.innerText?.toLowerCase()?.split('')?.filter((l) => allowedLetters.includes(l))?.join('')?.substr(0, 2);
                     if (n && !used.includes(n)) { // single digit
                         a.setAttribute('dim-index', n);
                         used.push(n);
@@ -121,10 +129,10 @@
             mode = '';
             const index = buffer.length > 0 ? buffer.join('') : '0';
             document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
-        } else if ((key === 'escape' || key === 'backspace' || key === disable) && mode) {
+        } else if ([navigate, navigateNewTab, disable, 'escape', 'backspace'].includes(key)) {
             if (key === disable) {
-                enabled = false;
-                console.log('Navigator is disabled until page reload');
+                disabled = true;
+                notify('Navigator is disabled until page reload.');
             }
             mode = '';
             [...document.querySelectorAll('[dim-index]')].forEach((el) => el.setAttribute('dim-index', undefined));
