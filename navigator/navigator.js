@@ -19,7 +19,7 @@
     const disable = 'h';
     const configs = {
         'example.com': { disabled: true },
-        'news.ycombinator.com': { selector: '.titleline a, .subline a:last-of-type' },
+        'news.ycombinator.com': { selector: '.titleline a, .subline a:last-of-type, [rel="next"]' },
         'www.google.com': { selector: 'a h3, td a, [role="listitem"] a', nosearch: true },
         'default': { selector: 'a, button, [role="button"], [aria-haspopup], [class*="button"], [class*="btn"], [class*="more"], [class*="menu"]' },
     };
@@ -81,12 +81,14 @@
         const key = event.key.toLowerCase();
         if (key === '/' && !config.nosearch) {
             event.preventDefault();
-            const el = ["input[type='search']", "input[id*='search']", "input[name*='search']", "input[type='text'], textarea[name='q']"]
+            const el = ["textarea[name='user-prompt']", "input[type='search']", "input[id*='search']", "input[name*='search']", "textarea[name='q']", "[type='text']"]
                 .flatMap((s) => Array.from(document.querySelectorAll(s)))
                 .find(isInViewport);
 
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                const end = el.value.length;
+                el.setSelectionRange(end, end);
                 el.focus();
             }
         } else if ((key === navigate || key === navigateNewTab) && mode !== key) {
@@ -129,6 +131,7 @@
             mode = '';
             const index = buffer.length > 0 ? buffer.join('') : '0';
             document.querySelector(`[dim-index="${index}"]`).dispatchEvent(e);
+            if (!ctrlClick) notify("navigating...");
         } else if ([navigate, navigateNewTab, disable, 'escape', 'backspace'].includes(key)) {
             if (key === disable) {
                 disabled = true;
@@ -147,6 +150,7 @@
             if (els.length === 1) {
                 mode = '';
                 els[0].dispatchEvent(e);
+                if (!ctrlClick) notify("navigating...");
             }
         }
 
